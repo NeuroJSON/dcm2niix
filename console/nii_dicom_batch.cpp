@@ -38,8 +38,10 @@
 #endif
 #include "nii_dicom.h"
 #include "nii_ortho.h"
-#include "base64.h"
-#include "cJSON.h"
+#ifdef myEnableJNIfTI
+ #include "base64.h"
+ #include "cJSON.h"
+#endif
 #include <ctype.h> //toupper
 #include <float.h>
 #include <math.h>
@@ -3355,10 +3357,12 @@ void nii_createDummyFilename(char *niiFilename, struct TDCMopts opts) {
 			strcat(niiFilename, ".nhdr'");
 		else
 			strcat(niiFilename, ".nrrd'");
+	#ifdef myEnableJNIfTI
 	} else if (opts.saveFormat == kSaveFormatJNII) {
 		strcat(niiFilename, ".jnii'");
 	} else if (opts.saveFormat == kSaveFormatBNII) {
 		strcat(niiFilename, ".bnii'");
+	#endif
 	} else {
 		if (opts.isGz)
 			strcat(niiFilename, ".nii.gz'");
@@ -4154,6 +4158,7 @@ int nii_saveNRRD(char *niiFilename, struct nifti_1_header hdr, unsigned char *im
 
 enum TZipMethod {zmZlib, zmGzip, zmBase64};
 
+#ifdef myEnableJNIfTI
 #ifdef Z_DEFLATED
 
 int zmat_run(const size_t inputsize, unsigned char *inputstr, size_t *outputsize, unsigned char **outputbuf, const int zipid, int *ret, const int iscompress){
@@ -4230,7 +4235,6 @@ int zmat_run(const size_t inputsize, unsigned char *inputstr, size_t *outputsize
 				count++;
 			}
 			*outputsize=zs.total_out;
-
 			if(*ret!=Z_STREAM_END && *ret!=Z_OK)
 				return -3;
 			inflateEnd(&zs);
@@ -4241,7 +4245,7 @@ int zmat_run(const size_t inputsize, unsigned char *inputstr, size_t *outputsize
 	return 0;
 }
 
-#endif
+#endif //Z_DEFLATED 
 
 int jnifti_lookup(int *keyid, int keylen, int val){
 	for(int i=0;i<keylen;i++){
@@ -4714,12 +4718,15 @@ int nii_savejnii(char *niiFilename, struct nifti_1_header hdr, unsigned char *im
 		cJSON_Delete(root);
 	return EXIT_SUCCESS;
 } // nii_savejnii()
+#endif //#ifdef myEnableJNIfTI
 
 int nii_saveForeign(char *niiFilename, struct nifti_1_header hdr, unsigned char *im, struct TDCMopts opts, struct TDICOMdata d, struct TDTI4D *dti4D, int numDTI) {
 	if (opts.saveFormat == kSaveFormatMGH)
 		return nii_saveMGH(niiFilename, hdr, im, opts, d, dti4D, numDTI);
+	#ifdef myEnableJNIfTI
 	else if (opts.saveFormat == kSaveFormatJNII || opts.saveFormat == kSaveFormatBNII)
 		return nii_savejnii(niiFilename, hdr, im, opts, d, dti4D, numDTI);
+	#endif
 	return nii_saveNRRD(niiFilename, hdr, im, opts, d, dti4D, numDTI);
 }// nii_saveForeign()
 
